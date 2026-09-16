@@ -8,6 +8,7 @@ Metrics/AbcSize:
 
 Metrics/BlockLength:
   Exclude:
+    - "*.gemspec"
     - "spec/**/*"
 
 Metrics/MethodLength:

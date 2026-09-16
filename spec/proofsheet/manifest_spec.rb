@@ -64,4 +64,33 @@ RSpec.describe Proofsheet::Manifest do
                                              password_field: "password", submit: "Continue")
     expect(subject.login.expectation).to have_attributes(selector: "header", text: "marc@example.com")
   end
+
+  it "reads composition backgrounds and screenshot layers" do
+    subject = manifest("compositions" => {
+                         "hero" => {
+                           "canvas" => [1600, 1000],
+                           "background" => { "gradient" => ["#112233", "#ddeeff"], "angle" => 135 },
+                           "layers" => [{
+                             "shot" => "targeted", "x" => 120, "y" => 80,
+                             "crop" => { "x" => 10, "y" => 20, "width" => 1000, "height" => 600 },
+                             "width" => 900, "radius" => 32, "rotate" => -4,
+                             "shadow" => { "x" => 8, "y" => 20, "blur" => 30, "color" => "#00000066" }
+                           }]
+                         }
+                       })
+
+    composition = subject.composition("hero")
+
+    expect(composition).to have_attributes(name: "hero", width: 1600, height: 1000, filename: "hero.png")
+    expect(composition.background).to have_attributes(gradient: ["#112233", "#ddeeff"], angle: 135)
+    expect(composition.layers.first).to have_attributes(shot: "targeted", x: 120, y: 80,
+                                                        width: 900, radius: 32, rotate: -4)
+    expect(composition.layers.first.crop).to have_attributes(x: 10, y: 20, width: 1000, height: 600)
+    expect(composition.layers.first.shadow).to have_attributes(x: 8, y: 20, blur: 30, color: "#00000066")
+  end
+
+  it "reports an unknown composition" do
+    expect { manifest.composition("missing") }
+      .to raise_error(Proofsheet::Error, /unknown composition "missing"/)
+  end
 end
