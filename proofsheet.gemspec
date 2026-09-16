@@ -9,9 +9,15 @@ Gem::Specification.new do |spec|
   spec.email = ["marc@eternal.co.za"]
 
   spec.summary = "Capture repeatable screenshots from web applications"
-  spec.description = "A manifest-driven CLI for capturing and clipping authenticated web application screenshots."
+  spec.description = "Automate screenshots from web apps for your documentation, landings pages and emails"
+  spec.homepage = "https://github.com/FASCINATION-works/proofsheet"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
+
+  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
+  spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
+
   spec.metadata["rubygems_mfa_required"] = "true"
 
   # Specify which files should be added to the gem when it is released.
