@@ -5,27 +5,58 @@ require "pathname"
 
 module Proofsheet
   class Capturer
-    def initialize(manifest:, host:, root: Dir.pwd, credentials: nil, browser_class: Browser, out: $stdout)
+    def initialize(manifest:, host:, root: Dir.pwd, credentials: nil, out: $stdout, **collaborators)
       @manifest = manifest
       @host = host
       @root = Pathname(root)
       @credentials = credentials
-      @browser_class = browser_class
       @out = out
+      @browser_class = collaborators.fetch(:browser_class, Browser)
+      @fetcher = collaborators.fetch(:fetcher, Download)
     end
 
-    def capture(names = @manifest.names)
-      shots = names.map { |name| @manifest.shot(name) }
+    def capture(names = @manifest.names + @manifest.image_names)
+      shots, images = split(names)
       username, password = authentication
 
-      @browser = @browser_class.new(host: @host, viewport: @manifest.viewport).start
-      sign_in(username, password) if @manifest.login
-      shots.each { |shot| capture_shot(shot) }
+      images.select(&:url).each { |image| download(image) }
+      browse(shots, images.select(&:page), username, password)
     ensure
       @browser&.quit
     end
 
     private
+
+    def split(names)
+      images, shots = names.partition { |name| @manifest.image_names.include?(name) }
+      [shots.map { |name| @manifest.shot(name) }, images.map { |name| @manifest.image(name) }]
+    end
+
+    def browse(shots, pages, username, password)
+      return if shots.empty? && pages.empty?
+
+      @browser = @browser_class.new(host: @host, viewport: @manifest.viewport).start
+      sign_in(username, password) if @manifest.login
+      shots.each { |shot| capture_shot(shot) }
+      pages.each { |image| download_page_image(image) }
+    end
+
+    def download(image, url = image.url)
+      @out.puts image.name
+      write(image, downloaded_png(image, url))
+    end
+
+    def download_page_image(image)
+      @browser.visit(image.page)
+      download(image, @browser.image_url_for(image.selector))
+    end
+
+    def downloaded_png(image, url)
+      require "vips"
+      Vips::Image.new_from_buffer(@fetcher.call(url), "").write_to_buffer(".png")
+    rescue Vips::Error => e
+      raise Error, "#{image.name}: downloaded data is not a supported image: #{e.message}"
+    end
 
     def authentication
       return [nil, nil] unless @manifest.login

@@ -89,6 +89,60 @@ RSpec.describe Proofsheet::Manifest do
     expect(composition.layers.first.shadow).to have_attributes(x: 8, y: 20, blur: 30, color: "#00000066")
   end
 
+  it "reads the three external image sources" do
+    subject = manifest("images" => {
+                         "logo" => { "path" => "assets/logo.png" },
+                         "partner" => { "url" => "https://cdn.example.test/partner.png" },
+                         "rival" => { "page" => "https://rival.example.test/", "selector" => ".hero" }
+                       })
+
+    expect(subject.image_names).to eq(%w[logo partner rival])
+    expect(subject.image("logo")).to have_attributes(filename: "logo.png", local?: true)
+    expect(subject.image("partner")).to have_attributes(url: "https://cdn.example.test/partner.png", local?: false)
+    expect(subject.image("rival")).to have_attributes(page: "https://rival.example.test/", selector: ".hero")
+  end
+
+  it "reports an unknown image" do
+    subject = manifest("images" => { "logo" => { "path" => "assets/logo.png" } })
+
+    expect { subject.image("missing") }.to raise_error(Proofsheet::Error, /unknown image "missing"/)
+  end
+
+  it "refuses an image that names more than one source" do
+    subject = manifest("images" => { "logo" => { "path" => "a.png", "url" => "https://example.test/a.png" } })
+
+    expect { subject.image("logo") }.to raise_error(Proofsheet::Error, /exactly one of path, url, or page/)
+  end
+
+  it "requires page and selector together" do
+    page_only = manifest("images" => { "logo" => { "page" => "https://example.test" } })
+    selector_only = manifest("images" => { "logo" => { "path" => "logo.png", "selector" => "img" } })
+
+    expect { page_only.image("logo") }.to raise_error(Proofsheet::Error, /page requires selector/)
+    expect { selector_only.image("logo") }.to raise_error(Proofsheet::Error, /selector can only be used with page/)
+  end
+
+  it "refuses a shot and an image sharing a name, because both write the same file" do
+    subject = manifest("images" => { "plain" => { "path" => "a.png" } })
+
+    expect { subject.image("plain") }.to raise_error(Proofsheet::Error, /plain named as both a shot and an image/)
+  end
+
+  it "reads a layer that draws an image rather than a shot" do
+    subject = manifest("images" => { "logo" => { "path" => "logo.png" } },
+                       "compositions" => { "hero" => { "canvas" => [100, 100],
+                                                       "layers" => [{ "image" => "logo", "x" => 10 }] } })
+
+    expect(subject.composition("hero").layers.first).to have_attributes(shot: nil, image: "logo", x: 10)
+  end
+
+  it "refuses a layer that names neither a shot nor an image" do
+    subject = manifest("compositions" => { "hero" => { "canvas" => [100, 100], "layers" => [{ "x" => 10 }] } })
+
+    expect { subject.composition("hero") }
+      .to raise_error(Proofsheet::Error, /hero: a layer must set exactly one of shot or image/)
+  end
+
   it "reports an unknown composition" do
     expect { manifest.composition("missing") }
       .to raise_error(Proofsheet::Error, /unknown composition "missing"/)

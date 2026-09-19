@@ -1,0 +1,48 @@
+host: "https://example.com"
+
+defaults:
+  viewport: [800, 500]
+  output_dir: "examples/output"
+
+shots:
+  web_page:
+    path: "/"
+
+images:
+  cat_badge:
+    url: "https://placecats.com/300/300"
+
+  studio_logo:
+    path: "examples/assets/logo480.png"
+
+compositions:
+  showcase:
+    canvas: [1200, 750]
+    background:
+      gradient: ["#1e293b", "#0f172a"]
+      angle: 135
+    layers:
+      - shot: web_page
+        x: 80
+        y: 100
+        width: 680
+        radius: 16
+        rotate: -2
+        shadow: true
+
+      - image: cat_badge
+        x: 740
+        y: 180
+        width: 360
+        radius: 24
+        rotate: 3
+        shadow:
+          x: 4
+          y: 20
+          blur: 28
+          color: "#00000066"
+
+      - image: studio_logo
+        x: 1040
+        y: 40
+        width: 100

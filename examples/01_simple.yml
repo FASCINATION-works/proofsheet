@@ -1,0 +1,9 @@
+host: "https://example.com"
+
+defaults:
+  viewport: [1200, 800]
+  output_dir: "examples/output"
+
+shots:
+  homepage:
+    path: "/"

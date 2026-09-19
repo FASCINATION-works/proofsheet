@@ -41,7 +41,7 @@ module Proofsheet
     end
 
     def layer_image(layer)
-      image = load_image(output_path("#{layer.shot}.png"))
+      image = load_image(@root.join(@manifest.layer_path(layer)))
       image = Cropper.call(image, layer.crop) if layer.crop
       image = image.resize(layer.width.to_f / image.width) if layer.width
       image = RoundedCorners.call(image, layer.radius)
