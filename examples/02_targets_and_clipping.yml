@@ -1,0 +1,16 @@
+host: "https://en.wikipedia.org"
+
+targets:
+  article: "Contact_print"
+
+defaults:
+  viewport: [1440, 900]
+  output_dir: "examples/output"
+
+shots:
+  contact_sheet_lead:
+    path: "/wiki/%{article}"
+    wait_for: "#firstHeading"
+    clip:
+      selector: "figure"
+      padding: 8

@@ -1,0 +1,19 @@
+host: "https://example.com"
+
+defaults:
+  output_dir: "examples/output"
+
+shots:
+  sample_page:
+    path: "/"
+
+images:
+  cat_placeholder:
+    url: "https://placecats.com/300/200"
+
+  fascination_logo:
+    page: "https://fascination.works"
+    selector: ".site-logo img"
+
+  studio_logo:
+    path: "examples/assets/logo480.png"

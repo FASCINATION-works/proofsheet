@@ -84,6 +84,17 @@ module Proofsheet
       @session.driver.browser.screenshot_as(:png)
     end
 
+    def image_url_for(selector)
+      node = @session.find(selector, match: :first)
+      tag_name = node.tag_name.downcase
+      raise Error, "#{selector.inspect} selected <#{tag_name}>, expected <img>" unless tag_name == "img"
+
+      url = @session.evaluate_script("arguments[0].currentSrc || arguments[0].src", node)
+      raise Error, "#{selector.inspect} selected an image without a source" if url.nil? || url.empty?
+
+      url
+    end
+
     def rect_for(selector, margin: 0)
       node = @session.find(selector, match: :first)
       @session.execute_script(SCROLL_INTO_VIEW, node, margin)

@@ -63,6 +63,58 @@ RSpec.describe Proofsheet::Capturer do
     end
   end
 
+  it "downloads a url image as PNG without starting the browser" do
+    subject = manifest("shots" => {},
+                       "images" => { "partner" => { "url" => "https://cdn.example.test/partner.png" } })
+    jpeg = Vips::Image.black(20, 10).new_from_image([255, 0, 0]).write_to_buffer(".jpg")
+
+    Dir.mktmpdir do |dir|
+      described_class.new(manifest: subject, host: "https://example.test", root: dir,
+                          browser_class: browser_class, fetcher: ->(_url) { jpeg },
+                          out: StringIO.new).capture
+      result = File.binread(File.join(dir, "shots/partner.png"))
+
+      expect(result).to start_with("\x89PNG".b)
+    end
+
+    expect(browser_class).not_to have_received(:new)
+  end
+
+  it "downloads the image selected on a page" do
+    subject = manifest("shots" => {}, "images" => { "rival" => {
+                         "page" => "https://rival.example.test/pricing", "selector" => ".hero img"
+                       } })
+    fetcher = class_double(Proofsheet::Download)
+    allow(browser).to receive(:image_url_for)
+      .with(".hero img")
+      .and_return("https://cdn.rival.example.test/hero.svg")
+    allow(fetcher).to receive(:call)
+      .with("https://cdn.rival.example.test/hero.svg")
+      .and_return('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10"/></svg>')
+
+    Dir.mktmpdir do |dir|
+      described_class.new(manifest: subject, host: "https://example.test", root: dir,
+                          browser_class: browser_class, fetcher: fetcher, out: StringIO.new).capture
+      result = File.binread(File.join(dir, "shots/rival.png"))
+
+      expect(result).to start_with("\x89PNG".b)
+    end
+
+    expect(browser).to have_received(:visit).with("https://rival.example.test/pricing")
+    expect(browser).not_to have_received(:screenshot_png)
+  end
+
+  it "refuses downloaded data that is not an image" do
+    subject = manifest("shots" => {},
+                       "images" => { "broken" => { "url" => "https://cdn.example.test/broken.png" } })
+
+    expect do
+      described_class.new(manifest: subject, host: "https://example.test",
+                          browser_class: browser_class, fetcher: ->(_url) { "not an image" },
+                          out: StringIO.new).capture
+    end.to raise_error(Proofsheet::Error, /broken: downloaded data is not a supported image/)
+  end
+
   it "signs in and verifies the configured identity" do
     subject = manifest(
       "credentials" => { "username" => "env:USER", "password" => "env:PASSWORD" },

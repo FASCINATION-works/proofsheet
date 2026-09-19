@@ -1,0 +1,29 @@
+host: "https://main.avodemo.com"
+
+expect:
+  username: "avo@cado.com"
+
+credentials:
+  username: "env:AVO_DEMO_USERNAME"
+  password: "env:AVO_DEMO_PASSWORD"
+
+login:
+  path: "/users/sign_in"
+  username_field: "user_email"
+  password_field: "user_password"
+  submit: "Sign in"
+  expect:
+    selector: "body"
+    text: "Dashboards"
+
+defaults:
+  viewport: [1280, 800]
+  output_dir: "examples/output"
+
+shots:
+  avo_dashboard:
+    path: "/avo/dashboards/dashy"
+    wait_for: "main"
+    expect:
+      selector: "body"
+      text: "Dashy"

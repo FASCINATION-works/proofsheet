@@ -67,6 +67,18 @@ RSpec.describe Proofsheet::CLI do
     expect(capturer_class.last.names).to eq(["account"])
   end
 
+  it "captures shots and images when no names are given" do
+    subject = Proofsheet::Manifest.new({
+                                         "host" => "https://example.test",
+                                         "shots" => { "home" => { "path" => "/" } },
+                                         "images" => { "logo" => { "path" => "logo.png" } }
+                                       })
+
+    run(["capture"], subject)
+
+    expect(capturer_class.last.names).to eq(%w[home logo])
+  end
+
   it "lets the command line override the host" do
     run(["capture", "--host", "http://localhost:3000"], manifest)
 

@@ -73,6 +73,17 @@ module Proofsheet
       names.map { |name| shot(name) }
     end
 
+    def image_names = image_config.names
+
+    def image(name) = image_config.fetch(name)
+
+    def layer_path(layer)
+      return File.join(output_dir, "#{layer.shot}.png") if layer.shot
+
+      source = image(layer.image)
+      source.local? ? source.path : File.join(output_dir, source.filename)
+    end
+
     def composition_names = composition_config.names
 
     def composition(name)
@@ -129,6 +140,19 @@ module Proofsheet
       @data.fetch("shots")
     rescue KeyError
       raise Error, "shots is missing from #{@path}"
+    end
+
+    def image_config
+      @image_config ||= ImageConfig.new(@data.fetch("images", {}), path: @path).tap do |config|
+        reject_clashes(config.names)
+      end
+    end
+
+    def reject_clashes(names)
+      clashes = names & shot_data.keys
+      return if clashes.empty?
+
+      raise Error, "#{clashes.join(", ")} named as both a shot and an image in #{@path}"
     end
 
     def composition_config

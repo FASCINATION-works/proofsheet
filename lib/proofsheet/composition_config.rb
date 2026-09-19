@@ -5,7 +5,7 @@ module Proofsheet
     Background = Data.define(:color, :gradient, :image, :angle)
     Shadow = Data.define(:x, :y, :blur, :color)
     Crop = Data.define(:x, :y, :width, :height)
-    Layer = Data.define(:shot, :x, :y, :crop, :width, :radius, :rotate, :shadow)
+    Layer = Data.define(:shot, :image, :x, :y, :crop, :width, :radius, :rotate, :shadow)
     Composition = Data.define(:name, :width, :height, :background, :layers) do
       def filename
         "#{name}.png"
@@ -28,7 +28,7 @@ module Proofsheet
       width, height = raw.fetch("canvas")
       Composition.new(name: name, width: width, height: height,
                       background: background(raw.fetch("background", "#ffffff")),
-                      layers: raw.fetch("layers").map { |layer| layer_spec(layer) })
+                      layers: raw.fetch("layers").map { |layer| layer_spec(layer, name) })
     rescue KeyError => e
       raise Error, "#{name}: #{e.message} in #{@path}"
     end
@@ -46,8 +46,11 @@ module Proofsheet
                      angle: raw.fetch("angle", 0))
     end
 
-    def layer_spec(raw)
-      Layer.new(shot: raw.fetch("shot"), x: raw.fetch("x", 0), y: raw.fetch("y", 0),
+    def layer_spec(raw, name)
+      source = [raw["shot"], raw["image"]].compact
+      raise Error, "#{name}: a layer must set exactly one of shot or image" unless source.one?
+
+      Layer.new(shot: raw["shot"], image: raw["image"], x: raw.fetch("x", 0), y: raw.fetch("y", 0),
                 crop: crop(raw["crop"]), width: raw["width"], radius: raw.fetch("radius", 0),
                 rotate: raw.fetch("rotate", 0), shadow: shadow(raw["shadow"]))
     end

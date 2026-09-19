@@ -63,10 +63,16 @@ module Proofsheet
       credentials = Credentials.new(manifest.credentials) if manifest.login
       capturer = @capturer_class.new(manifest: manifest, host: host, root: @root,
                                      credentials: credentials, out: @out)
-      names = @argv.empty? ? manifest.names : @argv
+      names = capture_names(manifest)
       @out.puts "Capturing #{names.size} #{names.size == 1 ? "shot" : "shots"} from #{host}"
       capturer.capture(names)
       @out.puts "Done."
+    end
+
+    def capture_names(manifest)
+      return @argv unless @argv.empty?
+
+      manifest.names + manifest.image_names
     end
 
     def compose(manifest)
