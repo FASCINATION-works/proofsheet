@@ -73,6 +73,12 @@ module Proofsheet
       names.map { |name| shot(name) }
     end
 
+    def composition_names = composition_config.names
+
+    def composition(name)
+      composition_config.fetch(name)
+    end
+
     def shot(name)
       raw = shot_data[name]
       raise Error, "unknown shot #{name.inspect} — known shots: #{names.join(", ")}" if raw.nil?
@@ -123,6 +129,10 @@ module Proofsheet
       @data.fetch("shots")
     rescue KeyError
       raise Error, "shots is missing from #{@path}"
+    end
+
+    def composition_config
+      @composition_config ||= CompositionConfig.new(@data.fetch("compositions", {}), path: @path)
     end
   end
 end

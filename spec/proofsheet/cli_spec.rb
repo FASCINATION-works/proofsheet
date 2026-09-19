@@ -5,7 +5,8 @@ RSpec.describe Proofsheet::CLI do
     out = StringIO.new
     err = StringIO.new
     status = described_class.new(argv, out: out, err: err, root: "/project",
-                                       manifest_loader: ->(_path) { manifest }, capturer_class: capturer_class).run
+                                       manifest_loader: ->(_path) { manifest }, capturer_class: capturer_class,
+                                       composer_class: composer_class).run
     [status, out.string, err.string]
   end
 
@@ -33,6 +34,24 @@ RSpec.describe Proofsheet::CLI do
       end
     end
   end
+  let(:composer_class) do
+    Class.new do
+      class << self
+        attr_accessor :last
+      end
+
+      attr_reader :arguments, :names
+
+      def initialize(**arguments)
+        @arguments = arguments
+        self.class.last = self
+      end
+
+      def compose(names)
+        @names = names
+      end
+    end
+  end
 
   it "lists the configured shots" do
     status, out, = run(["list"], manifest)
@@ -52,6 +71,18 @@ RSpec.describe Proofsheet::CLI do
     run(["capture", "--host", "http://localhost:3000"], manifest)
 
     expect(capturer_class.last.arguments).to include(host: "http://localhost:3000")
+  end
+
+  it "composes only named compositions" do
+    subject = Proofsheet::Manifest.new({
+                                         "shots" => {},
+                                         "compositions" => { "hero" => { "canvas" => [100, 100], "layers" => [] } }
+                                       })
+
+    status, = run(%w[compose hero], subject)
+
+    expect(status).to eq(0)
+    expect(composer_class.last.names).to eq(["hero"])
   end
 
   it "returns a failure for an unknown command" do

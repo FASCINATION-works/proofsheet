@@ -4,29 +4,30 @@ require "optparse"
 
 module Proofsheet
   class CLI
-    USAGE = "Usage: proofsheet <capture [SHOT ...] | list> [--config PATH] [--host HOST]"
+    USAGE = "Usage: proofsheet <capture [SHOT ...] | compose [COMPOSITION ...] | list> " \
+            "[--config PATH] [--host HOST]"
 
-    def initialize(argv, out: $stdout, err: $stderr, root: Dir.pwd, manifest_loader: Manifest.method(:load),
-                   capturer_class: Capturer)
+    def initialize(argv, out: $stdout, err: $stderr, root: Dir.pwd, manifest_loader: Manifest.method(:load), **classes)
       @argv = argv.dup
       @out = out
       @err = err
       @root = root
       @manifest_loader = manifest_loader
-      @capturer_class = capturer_class
+      @capturer_class = classes.fetch(:capturer_class, Capturer)
+      @composer_class = classes.fetch(:composer_class, Composer)
     end
 
     def run
       command = @argv.shift
       return help(0) if %w[help --help -h].include?(command)
       return version if %w[--version -v].include?(command)
-      return help(1) unless %w[capture list].include?(command)
+      return help(1) unless %w[capture compose list].include?(command)
 
       options = { config: Manifest::DEFAULT_PATH }
       parser(options).parse!(@argv)
       manifest = @manifest_loader.call(options[:config])
 
-      command == "list" ? list(manifest) : capture(manifest, options)
+      dispatch(command, manifest, options)
       0
     rescue OptionParser::ParseError, Error, KeyError => e
       @err.puts "proofsheet: #{e.message}"
@@ -34,6 +35,13 @@ module Proofsheet
     end
 
     private
+
+    def dispatch(command, manifest, options)
+      return list(manifest) if command == "list"
+      return compose(manifest) if command == "compose"
+
+      capture(manifest, options)
+    end
 
     def parser(options)
       OptionParser.new do |opts|
@@ -58,6 +66,13 @@ module Proofsheet
       names = @argv.empty? ? manifest.names : @argv
       @out.puts "Capturing #{names.size} #{names.size == 1 ? "shot" : "shots"} from #{host}"
       capturer.capture(names)
+      @out.puts "Done."
+    end
+
+    def compose(manifest)
+      names = @argv.empty? ? manifest.composition_names : @argv
+      @out.puts "Composing #{names.size} #{names.size == 1 ? "image" : "images"}"
+      @composer_class.new(manifest: manifest, root: @root, out: @out).compose(names)
       @out.puts "Done."
     end
 

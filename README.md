@@ -106,6 +106,56 @@ proofsheet list
 
 Relative output paths are resolved from the directory where the command runs.
 
+## Compositions
+
+Compositions arrange captured shots on a new PNG canvas. A background can be a solid color, an angled two-color gradient, or an image. Layers can be positioned, resized proportionally, rounded, rotated, and given a shadow.
+
+```yaml
+compositions:
+  launch-hero:
+    canvas: [1600, 1000]
+    background:
+      gradient: ["#211002", "#5aa579"]
+      angle: 135
+    layers:
+      - shot: dashboard
+        x: 120
+        y: 140
+        crop:
+          x: 80
+          y: 40
+          width: 1200
+          height: 700
+        width: 980
+        radius: 32
+        rotate: -4
+        shadow:
+          x: 8
+          y: 24
+          blur: 32
+          color: "#00000066"
+      - shot: activity
+        x: 900
+        y: 460
+        width: 560
+        rotate: 5
+        shadow: true
+```
+
+Solid colors can be written directly as `background: "#fff8f5"`. For a transparent canvas, use `background: "#00000000"`. For an image background, use `background: { image: "assets/background.png" }`; Proofsheet scales and center-crops it to cover the canvas. Colors use `#RRGGBB` or `#RRGGBBAA` notation.
+
+Layer crop coordinates are measured in pixels from the original captured shot. Proofsheet crops first, then resizes proportionally using `width`, rounds corners using `radius`, rotates, adds the shadow, and places the result on the canvas. The radius is measured in pixels after resizing and is clamped to half the layer's smaller dimension.
+
+Setting `shadow: true` uses `x: 0`, `y: 16`, `blur: 24`, and `color: "#00000055"`. Use the expanded shadow mapping shown above to override any of those values.
+
+Capture the source shots, then compose every configured image or selected compositions:
+
+```sh
+proofsheet capture
+proofsheet compose
+proofsheet compose launch-hero
+```
+
 ## Development
 
 Run `bin/setup`, then `bundle exec rake` to run the specs and linter. To install this gem locally, run `bundle exec rake install`.
